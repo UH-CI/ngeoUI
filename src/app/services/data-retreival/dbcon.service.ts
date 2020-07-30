@@ -23,67 +23,67 @@ export class DbconService {
 
   public getValuesFromGeneSymbol(symbol: string): Promise<GeneData> {
     console.log(symbol);
-
+    //three part request
     return this.sym2info(symbol).then((info: any) => {
       //should do this in API instead? Especially if going to split synonyms into separate cols in table
       let geneSynArr = info.gene_synonyms.split(",");
-      let platformSub = new Subject<PlatformData>();
+      let gplData: PlatformData[] = [];
+
+      for(let gpl in info.platforms) {
+
+        let gseDataPromise: Promise<SeriesData[]> = this.gpl2gse(gpl).then((gses: string[]) => {
+
+          let gseData: SeriesData[] = [];
+
+          for(let gse of gses) {
+            let gsmDataPromise: Promise<SampleData[]> = this.gse2value(gse, gpl, info.platforms[gpl]).then((values: any) => {
+              let gsmData: SampleData[] = [];
+              //actual values object nested under series tag
+              values = values[gse];
+              for(let gsm in values) {
+                let gsmDataSingle: SampleData = {
+                  gsm: gsm,
+                  values: values[gsm]
+                };
+                gsmData.push(gsmDataSingle);
+              }
+              return gsmData;
+            });
+
+            let gseDataSingle: SeriesData = {
+              gse: gse,
+              sampleData: gsmDataPromise
+            }
+
+            gseData.push(gseDataSingle);
+          }
+
+          return gseData;
+
+          
+        });
+
+
+        let gplDataSingle: PlatformData = {
+          gpl: gpl,
+          seriesData: gseDataPromise
+        };
+
+        gplData.push(gplDataSingle);
+      }
+
       let geneData: GeneData = {
         geneSymbol: symbol,
         geneSynonyms: geneSynArr,
         geneDescription: info.gene_description,
-        platformData: platformSub.asObservable()
+        platformData: gplData
       };
 
-      for(let gpl in info.platforms) {
-        this.gpl2gse(gpl).then((gses: string[]) => {
-          let seriesSub = new Subject<SeriesData>();
-          let gplData: PlatformData = {
-            gpl: gpl,
-            seriesData: seriesSub.asObservable()
-          }
-          platformSub.next(gplData);
-
-          for(let gse of gses) {
-            this.gse2value(gse, gpl, info.platforms[gpl]).then((values: any) => {
-              let gseData: SeriesData = {
-                gse: gse,
-
-              };
-              seriesSub.next()
-            });
-          }
-        });
-      }
-
       return geneData;
-
-      console.log(info);
-      for(let gpl in info.platforms) {
-        console.log(gpl)
-        this.gpl2gse(gpl).then((gses: string[]) => {
-          console.log(gses);
-          for(let gse of gses) {
-            this.gse2value(gse, gpl, info.platforms[gpl]).then((values: any) => {
-              console.log(gse, gpl, info.platforms[gpl])
-              console.log(values);
-            });
-          }
-        })
-        .catch((e) => {
-          console.log(e);
-        });
-      }
-    }, (e) => {
-      console.error(e);
-      return null;
     });
-
-
-    return null;
   }
 
-  //three part request
+  
 
   private sym2info(symbol: string): Promise<any> {
 
@@ -173,17 +173,17 @@ export interface GeneData {
   geneSymbol: string,
   geneSynonyms: string[],
   geneDescription: string,
-  platformData: Observable<PlatformData>
+  platformData: PlatformData[]
 }
 
 export interface PlatformData {
   gpl: string,
-  seriesData: Observable<SeriesData>
+  seriesData: Promise<SeriesData[]>
 }
 
 export interface SeriesData {
   gse: string,
-  sampleData: SampleData[]
+  sampleData: Promise<SampleData[]>
 }
 
 export interface SampleData {

@@ -1,0 +1,31 @@
+
+<div class="title-header">
+    <h1>
+        Application Title
+    </h1>
+</div>
+<div class="data-form">
+    <h2>
+        Enter Search Criteria
+    </h2>
+    <div (keyup.enter)="clickButton()">
+        <mat-form-field>
+            <mat-label>Gene Symbol</mat-label>
+            <input matInput value="Bap18">
+        </mat-form-field>
+        <br>
+        <button #submitButton (click)="submit()" mat-raised-button>Get Gene Data</button>
+    </div>
+</div>
+
+
+<div (keyup.enter)="clickButton()">
+    <mat-form-field>
+        <mat-label>Gene Symbol</mat-label>
+        <input matInput value="Bap18">
+    </mat-form-field>
+    <br>
+    <button #submitButton (click)="submit()" mat-raised-button>Get Gene Data</button>
+</div>
+
+
