@@ -10,15 +10,20 @@ import { Subject } from 'rxjs';
 export class ValueGraphComponent implements OnInit {
 
   private valueEmitter = new Subject<GeneValueInfo>();
+  private seriesEmitter = new Subject<SeriesValueInfo>();
 
   constructor(private dbcon: DbconService) { }
 
   ngOnInit(): void {
     let testSym = "Bap18";
-    // this.getDataFromSymbol(testSym);
+    this.getDataFromSymbol(testSym);
 
-    this.valueEmitter.asObservable().subscribe((value: GeneValueInfo) => {
+    // this.valueEmitter.asObservable().subscribe((value: GeneValueInfo) => {
+    //   console.log(value);
+    // });
 
+    this.seriesEmitter.asObservable().subscribe((seriesInfo: SeriesValueInfo) => {
+      console.log(seriesInfo);
     });
   }
 
@@ -47,6 +52,16 @@ export class ValueGraphComponent implements OnInit {
           for(let gseData of seriesData) {
             let gse: string = gseData.gse;
             gseData.sampleData.then((sampleData: SampleData[]) => {
+              let seriesInfo: SeriesValueInfo = {
+                geneSymbol: geneSymbol,
+                  geneSynonyms: geneSynonyms,
+                  geneDescription: geneDescription,
+                  gpl: gpl,
+                  gse: gse,
+                  gsms: sampleData
+              }
+              this.seriesEmitter.next(seriesInfo);
+
               for(let gsmData of sampleData) {
                 let gsm: string = gsmData.gsm;
                 let values: number[] = gsmData.values;
@@ -67,6 +82,49 @@ export class ValueGraphComponent implements OnInit {
       }
     });
   }
+
+
+  getAvgs(seriesData: SeriesValueInfo): {avg: number, subAvgs: number[]} {
+
+    let subAvgs = [];
+    let acc = 0;
+    for(let sample of seriesData.gsms) {
+      let subAcc = 0;
+      for(let value of sample.values) {
+        subAcc += value;
+      }
+      let subAvg = subAcc / sample.values.length;
+      subAvgs.push(subAvg);
+      acc += subAvg;
+    }
+    let avg = acc / seriesData.gsms.length;
+
+    let avgs = {
+      avg: avg,
+      subAvgs: subAvgs
+    };
+    return avgs;
+  }
+
+
+  getLogRatios(avgs: {avg: number, subAvgs: number[]}): number[] {
+    let ratios = [];
+
+    for(let subAvg of avgs.subAvgs) {
+      let ratio = subAvg / avgs.avg;
+      let lograt = Math.log2(ratio);
+      ratios.push(lograt);
+    }
+
+    return ratios;
+  }
+
+  //There is a long-standing convention in biology that P-values that are ≤0.05 are considered to be significant,
+
+  getPVals(lograts: number[]) {
+
+  }
+
 }
 
 //going to want to move the value packing/emitting to another service !!
@@ -78,4 +136,14 @@ export interface GeneValueInfo {
   gse: string,
   gsm: string,
   values: number[]
+}
+
+
+export interface SeriesValueInfo {
+  geneSymbol: string,
+  geneSynonyms: string[],
+  geneDescription: string,
+  gpl: string,
+  gse: string,
+  gsms: SampleData[]
 }

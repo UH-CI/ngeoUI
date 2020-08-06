@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import * as config from "src/assets/config.json"
 import { Observable, throwError, Subscription, Subject } from 'rxjs';
 import {HttpClient} from "@angular/common/http"
-import { map, retry, catchError, mergeMap } from 'rxjs/operators';
+import { map, retry, catchError, mergeMap, retryWhen } from 'rxjs/operators';
+import {Semaphore} from "../../models/Semaphore";
 
 @Injectable({
   providedIn: 'root'
@@ -14,6 +15,8 @@ export class DbconService {
     gpl2gse: "/api/v1/values/gpl_gse",
     gse2vals: "/api/v1/values/gse_values"
   };
+
+  private throttleSemaphore = new Semaphore(10);
 
   private apiBase: string;
 
@@ -93,22 +96,7 @@ export class DbconService {
     //encode just in case
     uri = encodeURI(uri);
 
-    return new Promise((resolve, reject) => {
-      return this.http.get<any>(uri)
-      .pipe(
-        retry(3),
-        catchError((e: Error) => {
-          return throwError(e);
-        })
-      )
-      .toPromise()
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((e) => {
-        reject(e);
-      });
-    });
+    return this.getData(uri);
   }
 
   private gpl2gse(gpl: string): Promise<any> {
@@ -119,22 +107,7 @@ export class DbconService {
     //encode just in case
     uri = encodeURI(uri);
 
-    return new Promise((resolve, reject) => {
-      return this.http.get<any>(uri)
-      .pipe(
-        retry(3),
-        catchError((e: Error) => {
-          return throwError(e);
-        })
-      )
-      .toPromise()
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((e) => {
-        reject(e);
-      });
-    });
+    return this.getData(uri);
   }
 
   private gse2value(gse: string, gpl: string, id_refs: string[]): Promise<any> {
@@ -147,24 +120,42 @@ export class DbconService {
     //encode just in case
     uri = encodeURI(uri);
 
-    return new Promise((resolve, reject) => {
-      return this.http.get<any>(uri)
-      .pipe(
-        retry(3),
-        catchError((e: Error) => {
-          return throwError(e);
+    return this.getData(uri);
+  }
+
+
+  //note should handle 400 errors separately
+  //means error in request, which probably means the resource doesn't exist, so just skip
+  //figure out how to use retrywhen
+  acquired = 0;
+  released = 0;
+  getData(uri: string): Promise<any> {
+    return this.throttleSemaphore.acquire().then(() => {
+      console.log(++this.acquired);
+      return new Promise<any>((resolve, reject) => {
+        this.http.get<any>(uri)
+        .pipe(
+          retry(3),
+          catchError((e: Error) => {
+            this.throttleSemaphore.release();
+            return throwError(e);
+          })
+        )
+        .toPromise()
+        .then((data) => {
+          console.log(++this.released);
+          this.throttleSemaphore.release();
+          resolve(data);
         })
-      )
-      .toPromise()
-      .then((data) => {
-        resolve(data);
-      })
-      .catch((e) => {
-        reject(e);
+        .catch((e) => {
+          this.throttleSemaphore.release();
+          reject(e);
+        });
       });
     });
   }
 }
+
 
 //need to throttle high numbers of requests
 //ERR_INSUFFICIENT_RESOURCES
