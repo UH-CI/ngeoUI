@@ -16,7 +16,7 @@ export class DbconService {
     gse2vals: "/api/v1/values/gse_values"
   };
 
-  private throttleSemaphore = new Semaphore(10);
+  private throttleSemaphore = new Semaphore(100);
 
   private apiBase: string;
 
@@ -63,7 +63,7 @@ export class DbconService {
 
           return gseData;
 
-          
+
         });
 
 
@@ -86,7 +86,7 @@ export class DbconService {
     });
   }
 
-  
+
 
   private sym2info(symbol: string): Promise<any> {
 
@@ -127,11 +127,8 @@ export class DbconService {
   //note should handle 400 errors separately
   //means error in request, which probably means the resource doesn't exist, so just skip
   //figure out how to use retrywhen
-  acquired = 0;
-  released = 0;
   getData(uri: string): Promise<any> {
     return this.throttleSemaphore.acquire().then(() => {
-      console.log(++this.acquired);
       return new Promise<any>((resolve, reject) => {
         this.http.get<any>(uri)
         .pipe(
@@ -143,7 +140,6 @@ export class DbconService {
         )
         .toPromise()
         .then((data) => {
-          console.log(++this.released);
           this.throttleSemaphore.release();
           resolve(data);
         })
