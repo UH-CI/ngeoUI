@@ -134,7 +134,6 @@ export class DbconService {
         .pipe(
           retry(3),
           catchError((e: Error) => {
-            this.throttleSemaphore.release();
             return throwError(e);
           })
         )

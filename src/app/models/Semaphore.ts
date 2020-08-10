@@ -29,7 +29,7 @@ export class Semaphore {
 
     releases = 0;
     release() {
-        // console.log(++this.releases);
+        console.log(this.level);
         if(++this.level > this.max) {
             throw new Error("Semaphore released too many times");
         }

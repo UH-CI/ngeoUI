@@ -17,7 +17,7 @@ export class ValueGraphComponent implements OnInit {
     data: [
         { x: [], y: [], type: 'scatter', mode: "markers"},
     ],
-    layout: {width: 1000, height: 1000, title: 'A Fancy Plot'}
+    layout: {width: 1000, height: 1000, title: 'Gene Expression Relative to Series', xaxis: {title: "log2 fold change"}, yaxis: {title: "-log10(p)"}}
   };
 
   data = { x: [], y: [], type: 'scatter', mode: "markers"};
