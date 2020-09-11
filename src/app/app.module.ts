@@ -16,6 +16,8 @@ import {MatButtonModule} from '@angular/material/button';
 
 import * as PlotlyJS from 'plotly.js/dist/plotly.js';
 import { PlotlyModule } from 'angular-plotly.js';
+import { LeafletGraphComponent } from './components/leaflet-graph/leaflet-graph.component';
+import { LeafletModule } from '@asymmetrik/ngx-leaflet';
 
 PlotlyModule.plotlyjs = PlotlyJS;
 
@@ -24,7 +26,8 @@ PlotlyModule.plotlyjs = PlotlyJS;
     AppComponent,
     ValueGraphComponent,
     SearchComponent,
-    GeneComponent
+    GeneComponent,
+    LeafletGraphComponent
   ],
   imports: [
     BrowserModule,
@@ -33,7 +36,8 @@ PlotlyModule.plotlyjs = PlotlyJS;
     HttpClientModule,
     MatInputModule,
     MatButtonModule,
-    PlotlyModule
+    PlotlyModule,
+    LeafletModule
   ],
   providers: [],
   bootstrap: [AppComponent]
